@@ -1,6 +1,6 @@
 <?php
 // api/service_page.php
-// MNTHC-41: Create service page - completed
+// MNTHC-41: Create service page - completed - author: Abenezer Andualem
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET");
