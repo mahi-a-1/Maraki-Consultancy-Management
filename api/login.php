@@ -1,6 +1,6 @@
 <?php
 // api/login.php
-// MNTHC-32: Design form - login endpoint
+// MNTHC-32: Design form - login endpoint - author: Abenezer Andualem
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
