@@ -1,6 +1,6 @@
 <?php
 // api/activity_logs.php
-// MNTHC-56: Create activity monitoring page - completed
+// MNTHC-56: Create activity monitoring page - completed - author: Abenezer Andualem
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST");
