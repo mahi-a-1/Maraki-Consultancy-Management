@@ -1,24 +1,18 @@
 <?php 
-// MNTHC-44: Update Appointment Status 
-// Created by: Lydia Abebaw 
- 
-class AppointmentStatusManager { 
+// MNTHC-44: Update Appointment Status by Lydia 
+class AppointmentStatus { 
     private $db; 
-    private $allowedStatuses = ['pending', 'approved', 'completed', 'cancelled', 'rescheduled']; 
- 
-    public function __construct($databaseConnection) { 
-        $this- = $databaseConnection; 
+    public function __construct($db) { 
+        $this- = $db; 
     } 
- 
-    public function updateStatus($appointmentId, $newStatus, $updatedBy) { 
-        if (!in_array($newStatus, $this- { 
-            return ['success' => false, 'message' => 'Invalid status']; 
+    public function update($id, $status) { 
+        $allowed = ['pending', 'approved', 'completed', 'cancelled']; 
+        if (!in_array($status, $allowed)) { 
+            return ['success' =, 'message' = status']; 
         } 
- 
         $sql = "UPDATE appointments SET status = ?, updated_at = NOW() WHERE id = ?"; 
         $stmt = $this-
-        $result = $stmt-, $appointmentId]); 
- 
-        return ['success' => $result, 'message' => 'Status updated to ' . $newStatus]; 
+        $result = $stmt-, $id]); 
+        return ['success' =, 'message' = updated to ' . $status]; 
     } 
 } 
