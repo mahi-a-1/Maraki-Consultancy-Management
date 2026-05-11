@@ -1,7 +1,7 @@
 <?php
 // api/login.php
 // MNTHC-32: Design form - login endpoint
-// MNTHC-64: Redirect user - role-based redirect on login - completed
+// MNTHC-64: Redirect user - role-based redirect on login - completed - author: Abenezer Andualem
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
