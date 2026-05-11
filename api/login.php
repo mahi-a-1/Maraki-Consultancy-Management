@@ -1,6 +1,7 @@
 <?php
 // api/login.php
 // MNTHC-32: Design form - login endpoint
+// MNTHC-64: Redirect user - role-based redirect on login
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
@@ -60,6 +61,14 @@ if (!password_verify($data['password'], $user['password_hash'])) {
 }
 
 http_response_code(200);
+
+// Role-based redirect mapping
+$redirectMap = [
+    'patient' => 'dashboard/patient',
+    'doctor'  => 'dashboard/doctor',
+    'admin'   => 'dashboard/admin',
+];
+
 echo json_encode([
     "status"  => "success",
     "message" => "Login successful",
@@ -67,7 +76,8 @@ echo json_encode([
         "user_id"   => $user['user_id'],
         "full_name" => $user['full_name'],
         "email"     => $user['email'],
-        "role"      => $user['role']
+        "role"      => $user['role'],
+        "redirect"  => $redirectMap[$user['role']]
     ]
 ]);
 ?>
