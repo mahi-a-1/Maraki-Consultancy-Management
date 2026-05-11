@@ -1,6 +1,6 @@
 <?php
 // api/appointments.php
-// MNTHC-43: Save appointments
+// MNTHC-43: Save appointments - completed
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT");
