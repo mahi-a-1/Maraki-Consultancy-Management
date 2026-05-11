@@ -1,6 +1,6 @@
 <?php
 // api/appointments.php
-// MNTHC-43: Save appointments - completed
+// MNTHC-43: Save appointments - completed - author: Abenezer Andualem
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT");
