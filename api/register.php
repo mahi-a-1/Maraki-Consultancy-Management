@@ -104,7 +104,7 @@ if ($stmt->execute()) {
 } else {
     http_response_code(500);
     echo json_encode([
-        "status" => "error",
+        "status" => "eror",
         "message" => "Registration failed, please try again"
     ]);
 }
