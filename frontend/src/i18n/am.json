@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "home": "መነሻ",
+    "booking": "ቀጠሮ ያዝ",
+    "login": "ግባ",
+    "register": "ተመዝገብ",
+    "logout": "ውጣ"
+  },
+  "booking": {
+    "title": "ቀጠሮ ያዝ",
+    "full_name": "ሙሉ ስም",
+    "email": "ኢሜይል",
+    "phone": "ስልክ ቁጥር",
+    "service": "አገልግሎት ይምረጡ",
+    "date": "የሚፈልጉት ቀን",
+    "time": "የሚፈልጉት ሰዓት",
+    "notes": "ተጨማሪ ማስታወሻ",
+    "submit": "ቀጠሮ ያዝ",
+    "success": "ቀጠሮዎ በተሳካ ሁኔታ ተይዟል!",
+    "select_service": "-- አገልግሎት ይምረጡ --"
+  },
+  "auth": {
+    "login_title": "እንኳን ደህና መጡ",
+    "register_title": "መለያ ፍጠር",
+    "email": "ኢሜይል",
+    "password": "የይለፍ ቃል",
+    "name": "ሙሉ ስም",
+    "phone": "ስልክ ቁጥር",
+    "login_btn": "ግባ",
+    "register_btn": "ተመዝገብ",
+    "no_account": "መለያ የለዎትም?",
+    "have_account": "መለያ አለዎት?"
+  },
+  "footer": {
+    "rights": "መብቶች ተጠብቀዋል",
+    "tagline": "የምግብ ሕክምና እና የጤና ምክር"
+  }
+}
