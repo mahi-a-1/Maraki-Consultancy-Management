@@ -1,6 +1,6 @@
 <?php
 // api/notifications.php
-// MNTHC-59: Implement notification service
+// MNTHC-59: Implement notification service - completed
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT");
