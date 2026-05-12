@@ -1,6 +1,7 @@
 <?php
 // api/login.php
 // MNTHC-32: Design form - login endpoint - author: Abenezer Andualem
+// MNTHC-35: Create login API - enhanced with session management
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
@@ -11,6 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["status" => "error", "message" => "Method not allowed"]);
     exit();
 }
+
+session_start();
 
 require_once "config/database.php";
 require_once "functions/validation.php";
@@ -58,6 +61,13 @@ if (!password_verify($data['password'], $user['password_hash'])) {
     echo json_encode(["status" => "error", "message" => "Invalid email or password"]);
     exit();
 }
+
+// Set session variables on successful login
+$_SESSION['user_id'] = $user['user_id'];
+$_SESSION['full_name'] = $user['full_name'];
+$_SESSION['email'] = $user['email'];
+$_SESSION['role'] = $user['role'];
+$_SESSION['logged_in'] = true;
 
 http_response_code(200);
 echo json_encode([
