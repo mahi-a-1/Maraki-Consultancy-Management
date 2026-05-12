@@ -1,12 +1,13 @@
 <?php
 // api/activity_logs.php
-// MNTHC-56: Create activity monitoring page - completed
+// MNTHC-56: Create activity monitoring page - completed - author: Abenezer Andualem
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST");
 header("Access-Control-Allow-Headers: Content-Type");
 
 require_once "config/database.php";
+require_once "functions/helpers.php";
 
 $database = new Database();
 $db = $database->getConnection();
@@ -14,89 +15,68 @@ $db = $database->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    // Admin: get all logs; user: get own logs
     $userId = $_GET['user_id'] ?? null;
-    $limit  = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
-    $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+    $action = isset($_GET['action']) ? sanitize($_GET['action']) : null;
+    $from   = isset($_GET['from'])   ? sanitize($_GET['from'])   : null;
+    $to     = isset($_GET['to'])     ? sanitize($_GET['to'])     : null;
 
-    if ($userId) {
-        $query = "SELECT l.*, u.full_name, u.role
-                  FROM activity_logs l
-                  LEFT JOIN users u ON l.user_id = u.user_id
-                  WHERE l.user_id = :uid
-                  ORDER BY l.created_at DESC
-                  LIMIT :limit OFFSET :offset";
-        $stmt = $db->prepare($query);
-        $stmt->bindParam(":uid", $userId);
-    } else {
-        // All logs (admin use)
-        $query = "SELECT l.*, u.full_name, u.role
-                  FROM activity_logs l
-                  LEFT JOIN users u ON l.user_id = u.user_id
-                  ORDER BY l.created_at DESC
-                  LIMIT :limit OFFSET :offset";
-        $stmt = $db->prepare($query);
-    }
+    [$limit, $offset] = getPagination();
 
-    $stmt->bindParam(":limit",  $limit,  PDO::PARAM_INT);
-    $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
-    $stmt->execute();
+    $where  = "1=1";
+    $params = [];
 
-    $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if ($userId) { $where .= " AND l.user_id = :uid";           $params[":uid"]    = $userId; }
+    if ($action) { $where .= " AND l.action LIKE :action";      $params[":action"] = "%$action%"; }
+    if ($from)   { $where .= " AND l.created_at >= :from";      $params[":from"]   = $from; }
+    if ($to)     { $where .= " AND l.created_at <= :to";        $params[":to"]     = $to; }
 
-    // Total count for pagination
-    $countQuery = $userId
-        ? "SELECT COUNT(*) FROM activity_logs WHERE user_id = :uid"
-        : "SELECT COUNT(*) FROM activity_logs";
-    $countStmt = $db->prepare($countQuery);
-    if ($userId) $countStmt->bindParam(":uid", $userId);
+    $countStmt = $db->prepare("SELECT COUNT(*) FROM activity_logs l WHERE $where");
+    foreach ($params as $k => $v) $countStmt->bindValue($k, $v);
     $countStmt->execute();
     $total = (int)$countStmt->fetchColumn();
 
-    echo json_encode([
-        "status" => "success",
-        "total"  => $total,
-        "limit"  => $limit,
-        "offset" => $offset,
-        "data"   => $logs
-    ]);
+    $query = "SELECT l.*, u.full_name, u.role
+              FROM activity_logs l
+              LEFT JOIN users u ON l.user_id = u.user_id
+              WHERE $where
+              ORDER BY l.created_at DESC
+              LIMIT :limit OFFSET :offset";
+
+    $stmt = $db->prepare($query);
+    foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+    $stmt->bindValue(":limit",  $limit,  PDO::PARAM_INT);
+    $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+    $stmt->execute();
+
+    http_response_code(200);
+    echo json_encode(array_merge(
+        ["status" => "success"],
+        paginatedResponse($stmt->fetchAll(PDO::FETCH_ASSOC), $total, $limit, $offset)
+    ));
 
 } elseif ($method === 'POST') {
-    // Log an activity
-    $data = json_decode(file_get_contents("php://input"), true);
+    $raw  = json_decode(file_get_contents("php://input"), true) ?? [];
+    $data = sanitizeInput($raw);
 
-    if (empty($data['action'])) {
-        http_response_code(400);
-        echo json_encode(["status" => "error", "message" => "action is required"]);
-        exit();
-    }
+    if (empty($data['action'])) respond(400, "error", "action is required");
 
     $userId      = $data['user_id'] ?? null;
     $description = $data['description'] ?? null;
     $ip          = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
-    $query = "INSERT INTO activity_logs (user_id, action, description, ip_address)
-              VALUES (:uid, :action, :desc, :ip)";
-    $stmt  = $db->prepare($query);
+    $stmt = $db->prepare("INSERT INTO activity_logs (user_id, action, description, ip_address) VALUES (:uid, :action, :desc, :ip)");
     $stmt->bindParam(":uid",    $userId);
     $stmt->bindParam(":action", $data['action']);
     $stmt->bindParam(":desc",   $description);
     $stmt->bindParam(":ip",     $ip);
 
     if ($stmt->execute()) {
-        http_response_code(201);
-        echo json_encode([
-            "status"  => "success",
-            "message" => "Activity logged",
-            "data"    => ["log_id" => $db->lastInsertId()]
-        ]);
+        respond(201, "success", "Activity logged", ["log_id" => $db->lastInsertId()]);
     } else {
-        http_response_code(500);
-        echo json_encode(["status" => "error", "message" => "Failed to log activity"]);
+        respond(500, "error", "Failed to log activity");
     }
 
 } else {
-    http_response_code(405);
-    echo json_encode(["status" => "error", "message" => "Method not allowed"]);
+    respond(405, "error", "Method not allowed");
 }
 ?>

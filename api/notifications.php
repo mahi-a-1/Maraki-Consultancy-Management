@@ -1,12 +1,13 @@
 <?php
 // api/notifications.php
-// MNTHC-59: Implement notification service - completed
+// MNTHC-59: Implement notification service - completed - author: Abenezer Andualem
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT");
 header("Access-Control-Allow-Headers: Content-Type");
 
 require_once "config/database.php";
+require_once "functions/helpers.php";
 
 $database = new Database();
 $db = $database->getConnection();
@@ -14,86 +15,80 @@ $db = $database->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    // Fetch notifications for a user
     $userId = $_GET['user_id'] ?? null;
+    $type   = isset($_GET['type']) ? sanitize($_GET['type']) : null;
+    $unread = isset($_GET['unread']) ? (bool)$_GET['unread'] : false;
 
-    if (!$userId) {
-        http_response_code(400);
-        echo json_encode(["status" => "error", "message" => "user_id is required"]);
-        exit();
-    }
+    if (!$userId) respond(400, "error", "user_id is required");
 
-    $query = "SELECT * FROM notifications WHERE user_id = :uid ORDER BY created_at DESC LIMIT 50";
-    $stmt  = $db->prepare($query);
-    $stmt->bindParam(":uid", $userId);
+    [$limit, $offset] = getPagination();
+
+    $where  = "user_id = :uid";
+    $params = [":uid" => $userId];
+
+    if ($type)   { $where .= " AND type = :type";       $params[":type"]   = $type; }
+    if ($unread) { $where .= " AND is_read = 0"; }
+
+    $countStmt = $db->prepare("SELECT COUNT(*) FROM notifications WHERE $where");
+    foreach ($params as $k => $v) $countStmt->bindValue($k, $v);
+    $countStmt->execute();
+    $total = (int)$countStmt->fetchColumn();
+
+    $stmt = $db->prepare("SELECT * FROM notifications WHERE $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
+    foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+    $stmt->bindValue(":limit",  $limit,  PDO::PARAM_INT);
+    $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
     $stmt->execute();
 
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $unreadCount   = 0;
-    foreach ($notifications as $n) {
-        if ($n['is_read'] == 0) $unreadCount++;
-    }
+    foreach ($notifications as $n) { if ($n['is_read'] == 0) $unreadCount++; }
 
-    echo json_encode([
-        "status"       => "success",
-        "unread_count" => $unreadCount,
-        "data"         => $notifications
-    ]);
+    http_response_code(200);
+    echo json_encode(array_merge(
+        ["status" => "success", "unread_count" => $unreadCount],
+        paginatedResponse($notifications, $total, $limit, $offset)
+    ));
 
 } elseif ($method === 'POST') {
-    // Send a notification
-    $data = json_decode(file_get_contents("php://input"), true);
+    $raw  = json_decode(file_get_contents("php://input"), true) ?? [];
+    $data = sanitizeInput($raw);
 
     if (empty($data['user_id']) || empty($data['title']) || empty($data['message'])) {
-        http_response_code(400);
-        echo json_encode(["status" => "error", "message" => "user_id, title, and message are required"]);
-        exit();
+        respond(400, "error", "user_id, title, and message are required");
     }
 
     $type  = $data['type'] ?? 'system';
-    $query = "INSERT INTO notifications (user_id, title, message, type) VALUES (:uid, :title, :msg, :type)";
-    $stmt  = $db->prepare($query);
+    $stmt  = $db->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (:uid, :title, :msg, :type)");
     $stmt->bindParam(":uid",   $data['user_id']);
     $stmt->bindParam(":title", $data['title']);
     $stmt->bindParam(":msg",   $data['message']);
     $stmt->bindParam(":type",  $type);
 
     if ($stmt->execute()) {
-        http_response_code(201);
-        echo json_encode([
-            "status"  => "success",
-            "message" => "Notification sent",
-            "data"    => ["notification_id" => $db->lastInsertId()]
-        ]);
+        respond(201, "success", "Notification sent", ["notification_id" => $db->lastInsertId()]);
     } else {
-        http_response_code(500);
-        echo json_encode(["status" => "error", "message" => "Failed to send notification"]);
+        respond(500, "error", "Failed to send notification");
     }
 
 } elseif ($method === 'PUT') {
-    // Mark notification(s) as read
-    $data = json_decode(file_get_contents("php://input"), true);
+    $raw  = json_decode(file_get_contents("php://input"), true) ?? [];
+    $data = sanitizeInput($raw);
 
     if (!empty($data['notification_id'])) {
-        $query = "UPDATE notifications SET is_read = 1 WHERE notification_id = :id";
-        $stmt  = $db->prepare($query);
+        $stmt = $db->prepare("UPDATE notifications SET is_read = 1 WHERE notification_id = :id");
         $stmt->bindParam(":id", $data['notification_id']);
     } elseif (!empty($data['user_id'])) {
-        // Mark all as read for a user
-        $query = "UPDATE notifications SET is_read = 1 WHERE user_id = :id";
-        $stmt  = $db->prepare($query);
+        $stmt = $db->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = :id");
         $stmt->bindParam(":id", $data['user_id']);
     } else {
-        http_response_code(400);
-        echo json_encode(["status" => "error", "message" => "notification_id or user_id is required"]);
-        exit();
+        respond(400, "error", "notification_id or user_id is required");
     }
 
     $stmt->execute();
-    echo json_encode(["status" => "success", "message" => "Notifications marked as read"]);
+    respond(200, "success", "Notifications marked as read");
 
 } else {
-    http_response_code(405);
-    echo json_encode(["status" => "error", "message" => "Method not allowed"]);
+    respond(405, "error", "Method not allowed");
 }
 ?>
